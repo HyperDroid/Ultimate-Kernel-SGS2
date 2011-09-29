@@ -1,0 +1,26 @@
+--- drivers/input/touchscreen/mxt224_u1.c	2011-08-31 22:10:47.000000000 -0700
++++ drivers/input/touchscreen/mxt224_u1.c	2011-09-24 15:38:05.000000000 -0700
+@@ -440,8 +440,8 @@
+ 	}
+ 
+ 	if (ta_status) {
+-		threshold = 70;
+-		threshold_e = 70;
++		threshold = 40;
++		threshold_e = 40;
+ 		/*calcfg = 112;*/
+ 		calcfg_dis = T48_CALCFG_TA;
+ 		calcfg_en = T48_CALCFG_TA | 0x20;
+@@ -450,10 +450,10 @@
+ 		blen = 16;
+ 	} else {
+ 	    if (boot_or_resume==1)
+-			threshold = 55;
++			threshold = 40;
+ 		else
+ 		    threshold = 40;
+-		threshold_e = 50;
++		threshold_e = 40;
+         /*calcfg = 80;*/
+         calcfg_dis = T48_CALCFG;
+ 		calcfg_en = T48_CALCFG | 0x20;

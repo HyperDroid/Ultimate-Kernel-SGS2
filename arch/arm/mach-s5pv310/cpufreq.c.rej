@@ -1,0 +1,159 @@
+--- arch/arm/mach-s5pv310/cpufreq.c	2011-08-31 22:10:34.000000000 -0700
++++ arch/arm/mach-s5pv310/cpufreq.c	2011-09-24 15:49:38.000000000 -0700
+@@ -151,30 +168,42 @@
+ 	/* Clock divider value for following
+ 	 * { DIVCOPY, DIVHPM }
+ 	 */
+-	/* ARM L0: 1200MHz */
++	/* ARM L0: 1600MHz */
+ 	{ 5, 0 },
+ 
+-	/* ARM L1: 1000MHz */
++	/* ARM L1: 1400MHz */
++	{ 5, 0 },
++	
++	/* ARM L2: 1200MHz */
++	{ 5, 0 },
++
++	/* ARM L3: 1000MHz */
+ 	{ 4, 0 },
+ 
+-	/* ARM L1: 800MHz */
++	/* ARM L4: 800MHz */
+ 	{ 3, 0 },
+ 
+-	/* ARM L2: 500MHz */
++	/* ARM L5: 500MHz */
+ 	{ 3, 0 },
+ 
+-	/* ARM L3: 200MHz */
++	/* ARM L6: 200MHz */
++	{ 3, 0 },
++
++	/* ARM L7: 100MHz */
+ 	{ 3, 0 },
+ };
+ 
+ #ifdef CONFIG_CPU_S5PV310_EVT1
+ static struct cpufreq_frequency_table s5pv310_freq_table[] = {
+-	{L0, 1200*1000},
+-	{L1, 1000*1000},
+-	{L2, 800*1000},
+-	{L3, 500*1000},
+-#if !defined(CONFIG_MACH_Q1_REV00) && !defined(CONFIG_MACH_Q1_REV02)
+-	{L4, 200*1000},
++	{L0, 1600*1000},
++	{L1, 1400*1000},
++	{L2, 1200*1000},
++	{L3, 1000*1000},
++	{L4, 800*1000},
++	{L5, 500*1000},
++#ifndef CONFIG_MACH_P6_REV02
++	{L6, 200*1000},
++	{L7, 100*1000},
+ #endif
+ 	{0, CPUFREQ_TABLE_END},
+ };
+@@ -1311,11 +1412,11 @@
+ 	if ((index < g_cpufreq_limit_level) && check_gov)
+ 		index = g_cpufreq_limit_level;
+ 
+-	if (s5pv310_max_armclk == ARMCLOCK_1200MHZ) {
++	if (s5pv310_max_armclk == ARMCLOCK_1600MHZ) {
+ #ifdef CONFIG_FREQ_STEP_UP_L2_L0
+ 		/* change L2 -> L0 */
+-		if ((index == L0) && (old_index > L2))
+-			index = L2;
++		if ((index == L0) && (old_index > L4))
++			index = L4;
+ #else
+ 		/* change L2 -> L1 and change L1 -> L0 */
+ 		if (index == L0) {
+@@ -1863,13 +1981,18 @@
+ static int s5pv310_cpufreq_notifier_event(struct notifier_block *this,
+ 		unsigned long event, void *ptr)
+ {
++	static int max, min;
++	struct cpufreq_policy *policy = cpufreq_cpu_get(0);
+ 	unsigned int cpu = 0;
+ 	int ret = 0;
+ 
+ 	switch (event) {
+ 	case PM_SUSPEND_PREPARE:
+-		ret = cpufreq_driver_target(cpufreq_cpu_get(cpu),
+-		s5pv310_freq_table[L1].frequency, DISABLE_FURTHER_CPUFREQ);
++		max = policy->max;
++		min = policy->min;
++		policy->max = policy->min = s5pv310_freq_table[L3].frequency;
++		ret = cpufreq_driver_target(policy,
++		s5pv310_freq_table[L3].frequency, DISABLE_FURTHER_CPUFREQ);
+ 		if (WARN_ON(ret < 0))
+ 			return NOTIFY_BAD;
+ #ifdef CONFIG_S5PV310_BUSFREQ
+@@ -1880,8 +2003,10 @@
+ 	case PM_POST_RESTORE:
+ 	case PM_POST_SUSPEND:
+ 		printk(KERN_DEBUG "PM_POST_SUSPEND for CPUFREQ: %d\n", ret);
+-		ret = cpufreq_driver_target(cpufreq_cpu_get(cpu),
+-		s5pv310_freq_table[L1].frequency, ENABLE_FURTHER_CPUFREQ);
++		ret = cpufreq_driver_target(policy,
++		s5pv310_freq_table[L3].frequency, ENABLE_FURTHER_CPUFREQ);
++		policy->max = max;
++		policy->min = min;
+ #ifdef CONFIG_S5PV310_BUSFREQ
+ 		s5pv310_busfreq_lock_free(DVFS_LOCK_ID_PM);
+ #endif
+@@ -2315,7 +2451,7 @@
+ 	printk(KERN_INFO "ASV ids_group = %d hpm_group = %d asv_group = %d\n",
+ 		ids_group, hpm_group, asv_group);
+ 
+-	if (s5pv310_max_armclk == ARMCLOCK_1200MHZ)
++	if (s5pv310_max_armclk == ARMCLOCK_1600MHZ)
+ 		last_level = CPUFREQ_LEVEL_END - 1;
+ 	else
+ 		last_level = CPUFREQ_LEVEL_END - 2;
+@@ -2461,27 +2606,37 @@
+ 	freqs.old = s5pv310_getspeed(0);
+ 
+ 	switch (freqs.old) {
+-	case 1200000:
++	case 1600000:
+ 		asv_arm_index = 0;
+ 		break;
+-	case 1000000:
++	case 1400000:
+ 		asv_arm_index = 1;
+ 		break;
+-	case 800000:
++	case 1200000:
+ 		asv_arm_index = 2;
+ 		break;
+-	case 500000:
++	case 1000000:
+ 		asv_arm_index = 3;
+ 		break;
+-	case 200000:
++	case 800000:
+ 		asv_arm_index = 4;
+ 		break;
++	case 500000:
++		asv_arm_index = 5;
++		break;
++	case 200000:
++		asv_arm_index = 6;
++		break;
++	case 100000:
++		asv_arm_index = 7;
++		break;
+ 	}
+ 
+-	if (s5pv310_max_armclk != ARMCLOCK_1200MHZ)
++	if (s5pv310_max_armclk != ARMCLOCK_1600MHZ)
+ 		asv_arm_index -= 1;
+ 
+-	asv_arm_volt = s5pv310_volt_table[asv_arm_index].arm_volt;
++//	asv_arm_volt = s5pv310_volt_table[asv_arm_index].arm_volt;
++	asv_arm_volt = exp_UV_mV[asv_arm_index];
+ #if defined(CONFIG_REGULATOR)
+ 	regulator_set_voltage(arm_regulator, asv_arm_volt, asv_arm_volt);
+ #endif
