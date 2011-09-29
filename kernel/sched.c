@@ -1,3 +1,6 @@
+#ifdef CONFIG_SCHED_BFS
+#include "sched_bfs.c"
+#else
 /*
  *  kernel/sched.c
  *
@@ -652,7 +655,7 @@ void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags)
 	 * A queue event has occurred, and we're going to schedule.  In
 	 * this case, we can save a useless back to back clock update.
 	 */
-	if (rq->curr->se.on_rq && test_tsk_need_resched(rq->curr))
+	if (test_tsk_need_resched(p))
 		rq->skip_clock_update = 1;
 }
 
@@ -1287,7 +1290,7 @@ static void resched_cpu(int cpu)
  * We don't do similar optimization for completely idle system, as
  * selecting an idle cpu will add more delays to the timers than intended
  * (as that cpu's timer base may not be uptodate wrt jiffies etc).
- */
+*/ 
 int get_nohz_timer_target(void)
 {
 	int cpu = smp_processor_id();
@@ -9487,3 +9490,4 @@ void synchronize_sched_expedited(void)
 EXPORT_SYMBOL_GPL(synchronize_sched_expedited);
 
 #endif /* #else #ifndef CONFIG_SMP */
+#endif /* CONFIG_SCHED_BFS */

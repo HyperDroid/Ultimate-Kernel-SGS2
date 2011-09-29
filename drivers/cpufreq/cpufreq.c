@@ -33,6 +33,31 @@
 #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
 						"cpufreq-core", msg)
 
+/* UV */
+#ifndef CONFIG_CPU_UNDERVOLTING
+int exp_UV_mV[8] = { 
+	1450000, //1600Mhz
+	1350000, //1400Mhz
+	1300000, //1200Mhz
+	1200000, //1000Mhz
+	1100000, // 800Mhz
+	1000000, // 500Mhz
+	975000,  // 200Mhz
+	950000,  // 100Mhz
+};
+#else
+int exp_UV_mV[8] = { 
+	1425000, //1600Mhz
+	1325000, //1400Mhz
+	1275000, //1200Mhz
+	1175000, //1000Mhz
+	1075000, // 800Mhz
+	950000,  // 500Mhz
+	925000,  // 200Mhz
+	900000,  // 100Mhz
+};
+#endif
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
@@ -648,6 +673,52 @@ static ssize_t show_scaling_setspeed(struct cpufreq_policy *policy, char *buf)
 	return policy->governor->show_setspeed(policy, buf);
 }
 
+/* sysfs interface for UV control */
+static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf) {
+
+      return sprintf(buf, 
+"1600mhz: %d mV\n\
+1400mhz: %d mV\n\
+1200mhz: %d mV\n\
+1000mhz: %d mV\n\
+800mhz: %d mV\n\
+500mhz: %d mV\n\
+200mhz: %d mV\n\
+100mhz: %d mV\n", 
+		exp_UV_mV[0]/1000,
+		exp_UV_mV[1]/1000,
+		exp_UV_mV[2]/1000,
+		exp_UV_mV[3]/1000,
+		exp_UV_mV[4]/1000,
+		exp_UV_mV[5]/1000,
+		exp_UV_mV[6]/1000,
+		exp_UV_mV[7]/1000);
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy *policy,
+                                      const char *buf, size_t count) {
+
+      unsigned int ret = -EINVAL;
+      int i = 0;
+      ret = sscanf(buf, "%d %d %d %d %d %d %d %d", &exp_UV_mV[0], &exp_UV_mV[1], &exp_UV_mV[2], &exp_UV_mV[3], &exp_UV_mV[4], &exp_UV_mV[5], &exp_UV_mV[6], &exp_UV_mV[7]);
+      if(ret != 8) {
+              return -EINVAL;
+      }
+      else
+              for( i = 0; i < 8; i++ )
+              {
+                 exp_UV_mV[i] *= 1000;
+                 if (exp_UV_mV[i] > CPU_UV_MV_MAX)
+                 {
+                    exp_UV_mV[i] = CPU_UV_MV_MAX;
+                 }
+                 else if (exp_UV_mV[i] < CPU_UV_MV_MIN)
+                 {
+                    exp_UV_mV[i] = CPU_UV_MV_MIN;
+                 }
+              }
+              return count;
+}
 /**
  * show_scaling_driver - show the current cpufreq HW/BIOS limitation
  */
@@ -677,6 +748,8 @@ cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+/* UV table */
+cpufreq_freq_attr_rw(UV_mV_table);
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -690,6 +763,7 @@ static struct attribute *default_attrs[] = {
 	&scaling_driver.attr,
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
+	&UV_mV_table.attr,
 	NULL
 };
 

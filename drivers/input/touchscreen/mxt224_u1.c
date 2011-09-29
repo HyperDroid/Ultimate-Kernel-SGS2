@@ -222,6 +222,14 @@ static int __devinit mxt224_backup(struct mxt224_data *data)
 	return write_mem(data, data->cmd_proc + CMD_BACKUP_OFFSET, 1, &buf);
 }
 
+static int __devinit mxt224_calibrate(struct mxt224_data *data)
+{
+	/* according to comment in Motorola's Droid X source, non-zero value
+	 * forces calibration */
+	u8 buf = 055u;
+	return write_mem(data, data->cmd_proc + CMD_CALIBRATE_OFFSET, 1, &buf);
+}
+
 static int get_object_info(struct mxt224_data *data, u8 object_type, u16 *size,
 				u16 *address)
 {
@@ -410,13 +418,13 @@ static void mxt224_ta_probe(int ta_status)
 	}
 
 	if (ta_status) {
-		threshold = 70;
+		threshold = 35;
 		calcfg = 112;
 		noise_threshold = 40;
 		movfilter = 46;
 	} else {
 	    if (boot_or_resume==1)
-			threshold = 55;
+			threshold = 35;
 		else
 		    threshold = 40;
         calcfg = 80;
